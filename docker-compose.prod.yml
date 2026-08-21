@@ -11,9 +11,10 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    hostname: postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-novalup}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-novalup}
       POSTGRES_DB: ${POSTGRES_DB:-novalup}
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -21,15 +22,18 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-novalup} -d ${POSTGRES_DB:-novalup}"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
+      start_period: 20s
     networks:
-      - internal
+      internal:
+        aliases:
+          - postgres
 
   app:
     build: .
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-novalup}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-novalup}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-novalup}:${POSTGRES_PASSWORD:-novalup}@postgres:5432/${POSTGRES_DB:-novalup}?connect_timeout=30
       UPLOAD_DIR: /data/uploads
       AUTH_USER: ${AUTH_USER}
       AUTH_PASSWORD: ${AUTH_PASSWORD}
@@ -51,7 +55,9 @@ services:
       - traefik.http.routers.novalup.tls=true
       - traefik.http.routers.novalup.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
       - traefik.http.routers.novalup.service=novalup
-      - traefik.http.services.novalup.loadbalancer.server.port=3000
+      # Traefik está en network_mode: host: no alcanza el IP de Docker.
+      # El admin usa el mismo truco (127.0.0.1:3000). El 3000 ya está ocupado.
+      - "traefik.http.services.novalup.loadbalancer.servers[0].url=http://127.0.0.1:3010"
 
 networks:
   internal:

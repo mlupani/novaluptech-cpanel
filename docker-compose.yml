@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: novalup
+      POSTGRES_PASSWORD: novalup
+      POSTGRES_DB: novalup
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U novalup -d novalup"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://novalup:novalup@postgres:5432/novalup
+      UPLOAD_DIR: /data/uploads
+      AUTH_USER: ${AUTH_USER:-novalup}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-novalup}
+      AUTH_SECRET: ${AUTH_SECRET}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  uploads:

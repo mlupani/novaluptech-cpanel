@@ -1,0 +1,67 @@
+# Producción detrás del Traefik que ya corre en el VPS.
+#   1. DNS A: cpanel.novaluptech.com → IP del servidor
+#   2. .env: AUTH_USER, AUTH_PASSWORD, AUTH_SECRET, POSTGRES_PASSWORD
+#      TRAEFIK_NETWORK y TRAEFIK_CERTRESOLVER iguales a tu Traefik
+#   3. docker compose -f docker-compose.prod.yml up -d --build
+#
+# Red de Traefik: docker network ls
+# Resolver: docker inspect <contenedor-traefik>
+
+name: novalup-crm
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-novalup}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-novalup}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-novalup} -d ${POSTGRES_DB:-novalup}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-novalup}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-novalup}
+      UPLOAD_DIR: /data/uploads
+      AUTH_USER: ${AUTH_USER}
+      AUTH_PASSWORD: ${AUTH_PASSWORD}
+      AUTH_SECRET: ${AUTH_SECRET}
+      NODE_ENV: production
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NETWORK:-proxy}
+      - traefik.http.routers.novalup.rule=Host(`${TRAEFIK_HOST:-cpanel.novaluptech.com}`)
+      - traefik.http.routers.novalup.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      - traefik.http.routers.novalup.tls=true
+      - traefik.http.routers.novalup.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      - traefik.http.services.novalup.loadbalancer.server.port=3000
+
+networks:
+  proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK:-proxy}
+  internal:
+    name: novalup-internal
+    internal: true
+
+volumes:
+  pgdata:
+  uploads:

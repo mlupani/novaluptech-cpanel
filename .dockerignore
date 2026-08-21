@@ -5,3 +5,6 @@ uploads
 lib/generated
 *.md
 .cursor
+.env
+.env.*
+

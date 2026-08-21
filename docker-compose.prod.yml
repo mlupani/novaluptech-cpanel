@@ -1,11 +1,10 @@
 # Producción detrás del Traefik que ya corre en el VPS.
 #   1. DNS A: cpanel.novaluptech.com → IP del servidor
 #   2. .env: AUTH_USER, AUTH_PASSWORD, AUTH_SECRET, POSTGRES_PASSWORD
-#      TRAEFIK_NETWORK y TRAEFIK_CERTRESOLVER iguales a tu Traefik
+#      TRAEFIK_CERTRESOLVER igual al de tu Traefik (letsencrypt, le, etc.)
 #   3. docker compose -f docker-compose.prod.yml up -d --build
-#
-# Red de Traefik: docker network ls
-# Resolver: docker inspect <contenedor-traefik>
+#   4. Enganchá Traefik a esta red (una vez):
+#        docker network connect novalup-proxy <contenedor-traefik>
 
 name: novalup-crm
 
@@ -47,7 +46,7 @@ services:
       - proxy
     labels:
       - traefik.enable=true
-      - traefik.docker.network=${TRAEFIK_NETWORK:-proxy}
+      - traefik.docker.network=novalup-proxy
       - traefik.http.routers.novalup.rule=Host(`${TRAEFIK_HOST:-cpanel.novaluptech.com}`)
       - traefik.http.routers.novalup.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
       - traefik.http.routers.novalup.tls=true
@@ -56,8 +55,7 @@ services:
 
 networks:
   proxy:
-    external: true
-    name: ${TRAEFIK_NETWORK:-proxy}
+    name: novalup-proxy
   internal:
     name: novalup-internal
     internal: true

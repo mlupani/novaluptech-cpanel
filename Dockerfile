@@ -3,7 +3,7 @@ WORKDIR /app
 RUN apk add --no-cache libc6-compat
 RUN corepack enable
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY . .
 ENV DATABASE_URL="postgresql://novalup:novalup@postgres:5432/novalup"
 RUN pnpm prisma generate

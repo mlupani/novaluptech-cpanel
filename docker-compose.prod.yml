@@ -1,10 +1,9 @@
-# Producción detrás del Traefik que ya corre en el VPS.
-#   1. DNS A: cpanel.novaluptech.com → IP del servidor
-#   2. .env: AUTH_USER, AUTH_PASSWORD, AUTH_SECRET, POSTGRES_PASSWORD
-#      TRAEFIK_CERTRESOLVER igual al de tu Traefik (letsencrypt, le, etc.)
-#   3. docker compose -f docker-compose.prod.yml up -d --build
-#   4. Enganchá Traefik a esta red (una vez):
-#        docker network connect novalup-proxy <contenedor-traefik>
+# Traefik en este VPS usa network_mode: host: no se puede
+# `docker network connect`. Publicamos la app en 127.0.0.1:3010
+# (el 3000 ya lo tiene agent-platform-admin).
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   curl -sI http://127.0.0.1:3010
 
 name: novalup-crm
 
@@ -38,27 +37,25 @@ services:
       NODE_ENV: production
     volumes:
       - uploads:/data/uploads
+    ports:
+      - "127.0.0.1:3010:3000"
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - internal
-      - proxy
     labels:
       - traefik.enable=true
-      - traefik.docker.network=novalup-proxy
       - traefik.http.routers.novalup.rule=Host(`${TRAEFIK_HOST:-cpanel.novaluptech.com}`)
       - traefik.http.routers.novalup.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
       - traefik.http.routers.novalup.tls=true
       - traefik.http.routers.novalup.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      - traefik.http.routers.novalup.service=novalup
       - traefik.http.services.novalup.loadbalancer.server.port=3000
 
 networks:
-  proxy:
-    name: novalup-proxy
   internal:
     name: novalup-internal
-    internal: true
 
 volumes:
   pgdata:

@@ -35,4 +35,4 @@ sleep 2
 echo "Migrating via ${PG_IP}:5432..."
 pnpm prisma migrate deploy
 
-exec pnpm start -- --hostname 0.0.0.0 --port 3000
+exec pnpm exec next start -H 0.0.0.0 -p 3000

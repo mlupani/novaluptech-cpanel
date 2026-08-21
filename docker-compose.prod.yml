@@ -50,14 +50,12 @@ services:
       - internal
     labels:
       - traefik.enable=true
-      - traefik.http.routers.novalup.rule=Host(`${TRAEFIK_HOST:-cpanel.novaluptech.com}`)
-      - traefik.http.routers.novalup.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
-      - traefik.http.routers.novalup.tls=true
-      - traefik.http.routers.novalup.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}
-      - traefik.http.routers.novalup.service=novalup
-      # Traefik está en network_mode: host: no alcanza el IP de Docker.
-      # El admin usa el mismo truco (127.0.0.1:3000). El 3000 ya está ocupado.
-      - "traefik.http.services.novalup.loadbalancer.servers[0].url=http://127.0.0.1:3010"
+      - traefik.http.routers.novalup-cpanel.rule=Host(`cpanel.novaluptech.com`)
+      - traefik.http.routers.novalup-cpanel.entrypoints=websecure
+      - traefik.http.routers.novalup-cpanel.tls=true
+      - traefik.http.routers.novalup-cpanel.tls.certresolver=letsencrypt
+      - traefik.http.routers.novalup-cpanel.service=novalup-cpanel
+      - traefik.http.services.novalup-cpanel.loadbalancer.server.port=3000
 
 networks:
   internal:

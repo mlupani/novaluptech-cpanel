@@ -36,6 +36,9 @@ yarn-error.log*
 # uploads
 /uploads
 
+# database dumps (datos de clientes)
+/dumps
+
 # prisma generated client
 /lib/generated
 

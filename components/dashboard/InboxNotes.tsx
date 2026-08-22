@@ -52,11 +52,13 @@ export function InboxNotes({ initialNotes }: InboxNotesProps) {
 	return (
 		<section>
 			<div className="mb-4 flex items-end justify-between gap-4">
-				<div>
+				<div className="min-w-0">
 					<p className="text-[11px] tracking-[0.22em] text-copper-soft uppercase">
 						Blotter
 					</p>
-					<h3 className="font-display text-2xl text-paper">Notas del estudio</h3>
+					<h3 className="font-display text-xl text-paper sm:text-2xl">
+						Notas del estudio
+					</h3>
 				</div>
 				<p className="text-xs tracking-widest text-ink-muted uppercase">
 					{openCount} abiertas
@@ -64,7 +66,7 @@ export function InboxNotes({ initialNotes }: InboxNotesProps) {
 			</div>
 
 			<form
-				className="flex gap-2"
+				className="flex flex-col gap-2 sm:flex-row"
 				onSubmit={(event) => {
 					event.preventDefault();
 					const title = draft.trim();

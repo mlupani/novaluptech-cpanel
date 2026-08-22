@@ -137,21 +137,21 @@ export function ClientWorkspaceView({
 	});
 
 	return (
-		<div className="flex min-h-[calc(100vh-88px)]">
+		<div className="flex min-h-[calc(100dvh-4.25rem)] flex-col lg:flex-row">
 			<WorkspaceSwitcher clients={clients} currentId={client.id} />
 			<div className="min-w-0 flex-1">
-				<header className="border-b border-white/10 px-6 py-6 md:px-10">
-					<div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-						<div>
-							<p className="text-[11px] tracking-[0.24em] text-copper-soft uppercase">
+				<header className="border-b border-white/10 px-4 py-5 sm:px-6 md:px-10 md:py-6">
+					<div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
+						<div className="min-w-0">
+							<p className="hidden text-[11px] tracking-[0.24em] text-copper-soft uppercase lg:block">
 								Workspace
 							</p>
-							<h2 className="font-display mt-1 text-4xl text-paper md:text-5xl">
+							<h2 className="font-display mt-1 text-[1.85rem] leading-[1.05] wrap-break-word text-paper sm:text-4xl md:text-5xl">
 								{client.company ?? client.name}
 							</h2>
 							<p className="mt-2 text-sm text-paper/70">{client.name}</p>
 						</div>
-						<div className="flex flex-wrap items-center gap-4 text-sm">
+						<div className="flex flex-wrap items-center gap-3 text-sm sm:gap-4">
 							<span className="border border-white/15 px-3 py-1 uppercase tracking-wide">
 								{statusLabel[client.status]}
 							</span>
@@ -163,7 +163,7 @@ export function ClientWorkspaceView({
 									href={whatsappHref(client.whatsapp)}
 									target="_blank"
 									rel="noreferrer"
-									className="bg-moss px-3 py-1 text-paper"
+									className="inline-flex min-h-10 items-center bg-moss px-3 py-1 text-paper"
 								>
 									WhatsApp
 								</a>
@@ -181,12 +181,12 @@ export function ClientWorkspaceView({
 							</button>
 						</div>
 					</div>
-					<div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+					<div className="mt-5 grid grid-cols-2 gap-2 sm:mt-6 sm:gap-3 xl:grid-cols-4">
 						<div className="border border-copper/45 bg-copper/10 p-3">
 							<p className="text-[10px] tracking-widest text-copper-soft uppercase">
 								Ganancia
 							</p>
-							<p className="font-display text-2xl text-copper-soft">
+							<p className="font-display text-xl wrap-break-word text-copper-soft sm:text-2xl">
 								{formatMoney(revenue.total, client.currency)}
 							</p>
 							<p className="mt-1 text-[11px] text-paper/55">
@@ -200,7 +200,7 @@ export function ClientWorkspaceView({
 							<p className="text-[10px] tracking-widest text-ink-muted uppercase">
 								Mensual
 							</p>
-							<p className="font-display text-2xl text-paper">
+							<p className="font-display text-xl wrap-break-word text-paper sm:text-2xl">
 								{formatMoney(client.monthlyAmount, client.currency)}
 							</p>
 						</div>
@@ -208,7 +208,7 @@ export function ClientWorkspaceView({
 							<p className="text-[10px] tracking-widest text-ink-muted uppercase">
 								Pago inicial
 							</p>
-							<p className="font-display text-2xl text-paper">
+							<p className="font-display text-xl wrap-break-word text-paper sm:text-2xl">
 								{formatMoney(client.initialPayment, client.currency)}
 							</p>
 						</div>
@@ -216,20 +216,20 @@ export function ClientWorkspaceView({
 							<p className="text-[10px] tracking-widest text-ink-muted uppercase">
 								Activo desde
 							</p>
-							<p className="font-display text-2xl text-paper">
+							<p className="font-display text-xl text-paper sm:text-2xl">
 								{client.startedAt ? formatDate(client.startedAt) : "—"}
 							</p>
 						</div>
 					</div>
 				</header>
 
-				<nav className="flex flex-wrap gap-1 border-b border-white/10 px-6 py-2 md:px-10">
+				<nav className="flex gap-1 overflow-x-auto border-b border-white/10 px-4 py-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:px-6 md:px-10 [&::-webkit-scrollbar]:hidden">
 					{sections.map((section) => (
 						<button
 							key={section.id}
 							type="button"
 							onClick={() => setWorkspaceSection(section.id)}
-							className={`px-3 py-2 text-sm ${
+							className={`shrink-0 px-3 py-2.5 text-sm ${
 								workspaceSection === section.id
 									? "text-copper-soft"
 									: "text-paper/55 hover:text-paper"
@@ -240,8 +240,8 @@ export function ClientWorkspaceView({
 					))}
 				</nav>
 
-				<div className="flex flex-col gap-10 px-6 py-8 md:px-10 lg:flex-row lg:items-start lg:gap-16">
-					<div className="w-full max-w-3xl shrink-0">
+				<div className="flex flex-col gap-8 px-4 py-6 sm:px-6 sm:py-8 md:px-10 lg:flex-row lg:items-start lg:gap-16">
+					<div className="w-full min-w-0 max-w-3xl shrink-0">
 						{workspaceSection === "contacto" ? (
 							<ContactSection
 								client={client}
@@ -697,9 +697,9 @@ function SocialSection({ client, onChanged }: NestedProps) {
 				{client.socialLinks.map((link) => (
 					<li
 						key={link.id}
-						className="flex items-center justify-between border border-white/10 px-4 py-3"
+						className="flex flex-col gap-2 border border-white/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
 					>
-						<div>
+						<div className="min-w-0">
 							<p className="text-xs tracking-widest text-copper-soft uppercase">
 								{socialLabel[link.platform]}
 							</p>
@@ -707,7 +707,7 @@ function SocialSection({ client, onChanged }: NestedProps) {
 								href={link.url}
 								target="_blank"
 								rel="noreferrer"
-								className="text-sm text-paper hover:text-copper-soft"
+								className="block truncate text-sm text-paper hover:text-copper-soft"
 							>
 								{link.handle ?? link.url}
 							</a>
@@ -791,11 +791,11 @@ function DocumentsSection({ client, onChanged }: NestedProps) {
 				{client.documents.map((doc) => (
 					<li
 						key={doc.id}
-						className="flex items-center justify-between border border-white/10 px-4 py-3"
+						className="flex flex-col gap-2 border border-white/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
 					>
-						<div>
-							<p className="text-paper">{doc.title}</p>
-							<p className="text-xs text-ink-muted">
+						<div className="min-w-0">
+							<p className="truncate text-paper">{doc.title}</p>
+							<p className="truncate text-xs text-ink-muted">
 								{documentLabel[doc.category]} · {doc.fileName}
 							</p>
 						</div>
@@ -906,8 +906,8 @@ function ProposalsSection({ client, onChanged }: NestedProps) {
 				{client.proposals.map((proposal) => (
 					<li key={proposal.id} className="border border-white/10 px-4 py-3">
 						<div className="flex items-start justify-between gap-3">
-							<div>
-								<p className="text-paper">{proposal.title}</p>
+							<div className="min-w-0">
+								<p className="wrap-break-word text-paper">{proposal.title}</p>
 								<p className="text-xs text-ink-muted">
 									{proposalLabel[proposal.status]}
 									{proposal.amount != null

@@ -11,11 +11,13 @@ interface StatCardProps {
 
 export function StatCard({ label, value, hint }: StatCardProps) {
 	return (
-		<article className="border border-white/10 bg-ink-soft/70 p-5">
+		<article className="border border-white/10 bg-ink-soft/70 p-4 sm:p-5">
 			<p className="text-[11px] tracking-[0.22em] text-copper-soft uppercase">
 				{label}
 			</p>
-			<p className="font-display mt-2 text-4xl text-paper">{value}</p>
+			<p className="font-display mt-2 text-3xl wrap-break-word text-paper sm:text-4xl">
+				{value}
+			</p>
 			{hint ? <p className="mt-2 text-xs text-ink-muted">{hint}</p> : null}
 		</article>
 	);
@@ -59,7 +61,7 @@ export function ExpirationCard({ client }: ExpirationCardProps) {
 					<p className="text-[10px] tracking-widest uppercase">días</p>
 				</div>
 			</div>
-			<div className="mt-3 flex items-center justify-between text-[11px] text-ink-muted">
+			<div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px] text-ink-muted">
 				<span>{formatDate(client.expirationDate)}</span>
 				<span>
 					{subscriptionLabel[client.subscriptionType]} · {urgencyCopy[level]}

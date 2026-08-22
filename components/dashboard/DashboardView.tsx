@@ -51,13 +51,13 @@ export function DashboardView({ clients, notes }: DashboardViewProps) {
 	);
 
 	return (
-		<main className="mx-auto max-w-7xl px-6 py-10">
-			<div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+		<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+			<div className="mb-8 flex flex-col gap-5 sm:mb-10 sm:gap-6 lg:flex-row lg:items-end lg:justify-between">
 				<div className="max-w-2xl">
 					<p className="text-[11px] tracking-[0.28em] text-copper-soft uppercase">
 						Tablero
 					</p>
-					<h2 className="font-display mt-2 text-5xl leading-[0.95] text-paper">
+					<h2 className="font-display mt-2 text-[2.35rem] leading-[0.95] text-paper sm:text-5xl">
 						El estudio, en un vistazo.
 					</h2>
 					<p className="mt-4 max-w-lg text-sm leading-relaxed text-paper/70">
@@ -67,7 +67,7 @@ export function DashboardView({ clients, notes }: DashboardViewProps) {
 				</div>
 				<Link
 					href="/clientes/nuevo"
-					className="bg-copper px-4 py-2 text-sm font-medium text-ink hover:bg-copper-soft"
+					className="inline-flex min-h-11 items-center justify-center bg-copper px-4 py-2 text-sm font-medium text-ink hover:bg-copper-soft sm:w-fit"
 				>
 					Nuevo cliente
 				</Link>
@@ -95,9 +95,11 @@ export function DashboardView({ clients, notes }: DashboardViewProps) {
 				<InboxNotes initialNotes={notes} />
 			</section>
 
-			<section className="mt-12">
-				<div className="mb-4 flex items-end justify-between">
-					<h3 className="font-display text-2xl text-paper">Próximos Vencimientos</h3>
+			<section className="mt-10 sm:mt-12">
+				<div className="mb-4 flex items-end justify-between gap-3">
+					<h3 className="font-display text-xl text-paper sm:text-2xl">
+						Próximos Vencimientos
+					</h3>
 					<p className="text-xs tracking-widest text-ink-muted uppercase">
 						{upcoming.length} fichas
 					</p>

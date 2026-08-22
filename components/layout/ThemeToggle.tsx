@@ -18,7 +18,7 @@ export function ThemeToggle() {
 		<button
 			type="button"
 			onClick={toggleTheme}
-			className="mr-1 flex size-9 items-center justify-center border border-white/15 text-paper/75 hover:border-copper/60 hover:text-copper-soft"
+			className="mr-0 flex size-11 items-center justify-center border border-white/15 text-paper/75 hover:border-copper/60 hover:text-copper-soft sm:mr-1 sm:size-9"
 			aria-label={isDark ? "Pasar a tema claro" : "Pasar a tema oscuro"}
 			title={isDark ? "Tema claro" : "Tema oscuro"}
 			suppressHydrationWarning

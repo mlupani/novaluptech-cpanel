@@ -2,13 +2,17 @@
 
 import { useRouter } from "next/navigation";
 
-export function LogoutButton() {
+interface LogoutButtonProps {
+	className?: string;
+}
+
+export function LogoutButton({ className }: LogoutButtonProps) {
 	const router = useRouter();
 
 	return (
 		<button
 			type="button"
-			className="px-3 py-1.5 text-paper/55 hover:text-paper"
+			className={className ?? "px-3 py-1.5 text-paper/55 hover:text-paper"}
 			onClick={async () => {
 				await fetch("/api/auth/logout", { method: "POST" });
 				router.replace("/login");

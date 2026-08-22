@@ -52,20 +52,22 @@ export function ClientLedger({ initialClients }: ClientLedgerProps) {
 	}, [clients, listFilters]);
 
 	return (
-		<main className="mx-auto max-w-7xl px-6 py-10">
-			<div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+		<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+			<div className="mb-8 flex flex-col gap-5 sm:gap-6 lg:flex-row lg:items-end lg:justify-between">
 				<div>
 					<p className="text-[11px] tracking-[0.28em] text-copper-soft uppercase">
 						Cartera
 					</p>
-					<h2 className="font-display mt-2 text-5xl text-paper">Listado</h2>
+					<h2 className="font-display mt-2 text-4xl text-paper sm:text-5xl">
+						Listado
+					</h2>
 					<p className="mt-3 max-w-md text-sm text-paper/70">
-						Vista compacta. Cada fila abre el workspace del cliente.
+						Vista compacta. Cada ficha abre el workspace del cliente.
 					</p>
 				</div>
 				<Link
 					href="/clientes/nuevo"
-					className="bg-copper px-4 py-2 text-sm font-medium text-ink hover:bg-copper-soft"
+					className="inline-flex min-h-11 items-center justify-center bg-copper px-4 py-2 text-sm font-medium text-ink hover:bg-copper-soft sm:w-fit"
 				>
 					Nuevo cliente
 				</Link>
@@ -87,14 +89,14 @@ export function ClientLedger({ initialClients }: ClientLedgerProps) {
 				</div>
 			) : (
 				<>
-					<div className="mb-4 flex flex-wrap gap-2">
+					<div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
 						<input
 							value={listFilters.search}
 							onChange={(event) =>
 								setListFilters({ search: event.target.value })
 							}
 							placeholder="Buscar"
-							className="w-52 border border-white/15 bg-transparent px-3 py-1.5 text-sm text-paper placeholder:text-ink-muted"
+							className="field w-full sm:w-52 sm:min-h-0"
 						/>
 						<select
 							value={listFilters.status}
@@ -103,7 +105,7 @@ export function ClientLedger({ initialClients }: ClientLedgerProps) {
 									status: event.target.value as typeof listFilters.status,
 								})
 							}
-							className="border border-white/15 bg-ink px-3 py-1.5 text-sm text-paper"
+							className="field w-full sm:w-auto sm:min-h-0"
 						>
 							<option value="all">Todos los estados</option>
 							<option value="activo">Activo</option>
@@ -118,7 +120,7 @@ export function ClientLedger({ initialClients }: ClientLedgerProps) {
 										event.target.value as typeof listFilters.subscriptionType,
 								})
 							}
-							className="border border-white/15 bg-ink px-3 py-1.5 text-sm text-paper"
+							className="field w-full sm:w-auto sm:min-h-0"
 						>
 							<option value="all">Mensual y anual</option>
 							<option value="mensual">Mensual</option>
@@ -126,7 +128,53 @@ export function ClientLedger({ initialClients }: ClientLedgerProps) {
 						</select>
 					</div>
 
-					<div className="overflow-x-auto border border-white/10">
+					<ul className="grid gap-2 md:hidden">
+						{filtered.map((client) => {
+							const level = getUrgencyLevel(client.daysRemaining);
+							const tone =
+								level === "critical"
+									? "text-danger"
+									: level === "warning"
+										? "text-warn"
+										: "text-paper/80";
+							return (
+								<li key={client.id}>
+									<Link
+										href={`/clientes/${client.id}`}
+										className="block border border-white/10 bg-ink-soft/50 p-4"
+									>
+										<div className="flex items-start justify-between gap-3">
+											<div className="min-w-0">
+												<p className="truncate text-paper">
+													{client.company ?? "—"}
+												</p>
+												<p className="truncate text-sm text-paper/70">
+													{client.name}
+												</p>
+											</div>
+											<p className={`shrink-0 text-right text-sm ${tone}`}>
+												{client.daysRemaining}d
+											</p>
+										</div>
+										<div className="mt-3 flex items-end justify-between gap-3 text-xs text-ink-muted">
+											<span>
+												{statusLabel[client.status]} ·{" "}
+												{subscriptionLabel[client.subscriptionType]}
+											</span>
+											<span className="text-copper-soft">
+												{formatMoney(client.monthlyAmount, client.currency)}
+											</span>
+										</div>
+										<p className={`mt-1 text-xs ${tone}`}>
+											Vence {formatDate(client.expirationDate)}
+										</p>
+									</Link>
+								</li>
+							);
+						})}
+					</ul>
+
+					<div className="hidden overflow-x-auto border border-white/10 md:block">
 						<table className="w-full min-w-[720px] text-left text-sm">
 							<thead className="bg-ink-soft text-[11px] tracking-[0.18em] text-copper-soft uppercase">
 								<tr>
@@ -180,6 +228,11 @@ export function ClientLedger({ initialClients }: ClientLedgerProps) {
 							</p>
 						) : null}
 					</div>
+					{filtered.length === 0 ? (
+						<p className="px-1 py-6 text-sm text-ink-muted md:hidden">
+							No hay clientes con esos filtros.
+						</p>
+					) : null}
 					<p className="mt-4 text-xs text-ink-muted">
 						{filtered.length} de {clients.length}
 					</p>

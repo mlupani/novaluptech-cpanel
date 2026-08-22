@@ -7,7 +7,8 @@ services:
       POSTGRES_PASSWORD: novalup
       POSTGRES_DB: novalup
     ports:
-      - "5432:5432"
+      # 5432 lo usa agent-platform-postgres en esta máquina
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

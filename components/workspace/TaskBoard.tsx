@@ -3,7 +3,8 @@
 import {
 	DndContext,
 	DragOverlay,
-	PointerSensor,
+	MouseSensor,
+	TouchSensor,
 	closestCorners,
 	useDroppable,
 	useSensor,
@@ -81,7 +82,10 @@ export function TaskBoard({ client }: TaskBoardProps) {
 	}, [client.tasks]);
 
 	const sensors = useSensors(
-		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+		useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+		useSensor(TouchSensor, {
+			activationConstraint: { delay: 180, tolerance: 8 },
+		}),
 	);
 
 	const persist = useMutation({
@@ -215,7 +219,7 @@ export function TaskBoard({ client }: TaskBoardProps) {
 					<button
 						type="submit"
 						disabled={addMutation.isPending}
-						className="btn-primary shrink-0"
+						className="btn-primary btn-compact shrink-0"
 					>
 						+
 					</button>
@@ -229,7 +233,7 @@ export function TaskBoard({ client }: TaskBoardProps) {
 				onDragOver={handleDragOver}
 				onDragEnd={handleDragEnd}
 			>
-				<div className="grid flex-1 grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-5 lg:gap-3 lg:p-5">
+				<div className="flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain p-4 lg:grid lg:flex-1 lg:snap-none lg:grid-cols-5 lg:overflow-visible lg:p-5">
 					{taskColumns.map((column) => (
 						<BoardColumn
 							key={column.id}
@@ -261,7 +265,7 @@ function BoardColumn({ id, label, tasks, onDelete }: BoardColumnProps) {
 	return (
 		<section
 			ref={setNodeRef}
-			className={`flex min-h-[26rem] min-w-0 flex-col border lg:min-h-[32rem] ${
+			className={`flex min-h-[18rem] w-[min(16.5rem,78vw)] shrink-0 snap-start flex-col border lg:min-h-[32rem] lg:w-auto ${
 				isOver ? "border-copper/70 bg-copper/5" : "border-white/10 bg-ink/50"
 			}`}
 		>

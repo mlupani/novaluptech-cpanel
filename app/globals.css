@@ -199,3 +199,18 @@ textarea.field {
 .workspace-sheet-backdrop {
 	animation: workspace-backdrop-in 200ms ease-out;
 }
+
+.blotter-fold {
+	display: grid;
+	grid-template-rows: 1fr;
+	transition: grid-template-rows 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.blotter-fold[data-collapsed="true"] {
+	grid-template-rows: 0fr;
+}
+
+.blotter-fold-inner {
+	min-height: 0;
+	overflow: hidden;
+}

@@ -24,6 +24,7 @@ interface UiState {
 	workspaceSection: WorkspaceSection;
 	listFilters: ListFilters;
 	theme: Theme;
+	blotterNotesOpen: boolean;
 	setSidebarOpen: (open: boolean) => void;
 	toggleSidebar: () => void;
 	setWorkspaceSection: (section: WorkspaceSection) => void;
@@ -31,6 +32,8 @@ interface UiState {
 	setTheme: (theme: Theme) => void;
 	toggleTheme: () => void;
 	hydrateTheme: () => void;
+	setBlotterNotesOpen: (open: boolean) => void;
+	toggleBlotterNotes: () => void;
 }
 
 function applyTheme(theme: Theme) {
@@ -47,6 +50,7 @@ export const useUiStore = create<UiState>()((set) => ({
 		subscriptionType: "all",
 	},
 	theme: "dark",
+	blotterNotesOpen: true,
 	setSidebarOpen: (open) => set({ sidebarOpen: open }),
 	toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 	setWorkspaceSection: (workspaceSection) => set({ workspaceSection }),
@@ -70,4 +74,7 @@ export const useUiStore = create<UiState>()((set) => ({
 		applyTheme(theme);
 		set({ theme });
 	},
+	setBlotterNotesOpen: (blotterNotesOpen) => set({ blotterNotesOpen }),
+	toggleBlotterNotes: () =>
+		set((state) => ({ blotterNotesOpen: !state.blotterNotesOpen })),
 }));

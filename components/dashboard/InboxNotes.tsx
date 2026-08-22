@@ -10,6 +10,7 @@ import {
 	inboxQueryKey,
 	updateInboxNote,
 } from "@/lib/api/notes";
+import { useUiStore } from "@/stores/ui-store";
 
 interface InboxNotesProps {
 	initialNotes: InboxNote[];
@@ -18,6 +19,9 @@ interface InboxNotesProps {
 export function InboxNotes({ initialNotes }: InboxNotesProps) {
 	const queryClient = useQueryClient();
 	const [draft, setDraft] = useState("");
+	const blotterNotesOpen = useUiStore((state) => state.blotterNotesOpen);
+	const toggleBlotterNotes = useUiStore((state) => state.toggleBlotterNotes);
+	const setBlotterNotesOpen = useUiStore((state) => state.setBlotterNotesOpen);
 	const { data: notes = [] } = useQuery({
 		queryKey: inboxQueryKey,
 		queryFn: fetchInboxNotes,
@@ -28,6 +32,7 @@ export function InboxNotes({ initialNotes }: InboxNotesProps) {
 		mutationFn: createInboxNote,
 		onSuccess: async () => {
 			setDraft("");
+			setBlotterNotesOpen(true);
 			await queryClient.invalidateQueries({ queryKey: inboxQueryKey });
 		},
 	});
@@ -48,10 +53,17 @@ export function InboxNotes({ initialNotes }: InboxNotesProps) {
 	});
 
 	const openCount = notes.filter((note) => !note.done).length;
+	const latestOpen = notes.find((note) => !note.done);
 
 	return (
 		<section>
-			<div className="mb-4 flex items-end justify-between gap-4">
+			<button
+				type="button"
+				onClick={toggleBlotterNotes}
+				className="mb-4 flex w-full items-end justify-between gap-4 text-left"
+				aria-expanded={blotterNotesOpen}
+				aria-controls="blotter-notes"
+			>
 				<div className="min-w-0">
 					<p className="text-[11px] tracking-[0.22em] text-copper-soft uppercase">
 						Blotter
@@ -60,10 +72,18 @@ export function InboxNotes({ initialNotes }: InboxNotesProps) {
 						Notas del estudio
 					</h3>
 				</div>
-				<p className="text-xs tracking-widest text-ink-muted uppercase">
-					{openCount} abiertas
-				</p>
-			</div>
+				<span className="flex shrink-0 items-center gap-3 pb-0.5">
+					<span className="text-xs tracking-widest text-ink-muted uppercase">
+						{openCount} abiertas
+					</span>
+					<span
+						className="flex size-9 items-center justify-center border border-white/15 text-paper/80"
+						aria-hidden="true"
+					>
+						<FoldIcon open={blotterNotesOpen} />
+					</span>
+				</span>
+			</button>
 
 			<form
 				className="flex flex-col gap-2 sm:flex-row"
@@ -94,62 +114,97 @@ export function InboxNotes({ initialNotes }: InboxNotesProps) {
 				cliente.
 			</p>
 
-			{notes.length === 0 ? (
-				<div className="mt-6 border border-dashed border-white/15 px-4 py-8">
-					<p className="text-sm text-ink-muted">
-						El blotter está vacío. Escribí arriba y queda acá.
-					</p>
-				</div>
-			) : (
-				<ul className="mt-6 border-t border-white/10">
-					{notes.map((note) => (
-						<li
-							key={note.id}
-							className="flex items-start gap-3 border-b border-white/10 py-3"
-						>
-							<button
-								type="button"
-								onClick={() =>
-									toggleMutation.mutate({ id: note.id, done: !note.done })
-								}
-								className={`mt-0.5 flex size-5 shrink-0 items-center justify-center border ${
-									note.done
-										? "border-copper bg-copper text-ink"
-										: "border-white/30 text-transparent hover:border-copper-soft"
-								}`}
-								aria-label={
-									note.done ? "Marcar como pendiente" : "Marcar como hecha"
-								}
-								aria-pressed={note.done}
-							>
-								<span className="text-[11px] leading-none">✓</span>
-							</button>
-							<p
-								className={`min-w-0 flex-1 text-sm leading-snug ${
-									note.done
-										? "text-ink-muted line-through"
-										: "text-paper"
-								}`}
-							>
-								{note.title}
+			{!blotterNotesOpen && latestOpen ? (
+				<p className="mt-3 truncate border-t border-white/10 pt-3 text-sm text-paper/55">
+					<span className="mr-2 text-[10px] tracking-[0.18em] text-copper-soft uppercase">
+						Pendiente
+					</span>
+					{latestOpen.title}
+				</p>
+			) : null}
+
+			<div
+				id="blotter-notes"
+				className="blotter-fold"
+				data-collapsed={blotterNotesOpen ? "false" : "true"}
+			>
+				<div className="blotter-fold-inner">
+					{notes.length === 0 ? (
+						<div className="mt-6 border border-dashed border-white/15 px-4 py-8">
+							<p className="text-sm text-ink-muted">
+								El blotter está vacío. Escribí arriba y queda acá.
 							</p>
-							<button
-								type="button"
-								className="shrink-0 text-ink-muted hover:text-danger"
-								onClick={() => {
-									if (confirm(`¿Eliminar «${note.title}»?`)) {
-										removeMutation.mutate(note.id);
-									}
-								}}
-								aria-label="Eliminar nota"
-							>
-								<TrashIcon />
-							</button>
-						</li>
-					))}
-				</ul>
-			)}
+						</div>
+					) : (
+						<ul className="mt-6 border-t border-white/10">
+							{notes.map((note) => (
+								<li
+									key={note.id}
+									className="flex items-start gap-3 border-b border-white/10 py-3"
+								>
+									<button
+										type="button"
+										onClick={() =>
+											toggleMutation.mutate({ id: note.id, done: !note.done })
+										}
+										className={`mt-0.5 flex size-5 shrink-0 items-center justify-center border ${
+											note.done
+												? "border-copper bg-copper text-ink"
+												: "border-white/30 text-transparent hover:border-copper-soft"
+										}`}
+										aria-label={
+											note.done ? "Marcar como pendiente" : "Marcar como hecha"
+										}
+										aria-pressed={note.done}
+									>
+										<span className="text-[11px] leading-none">✓</span>
+									</button>
+									<p
+										className={`min-w-0 flex-1 text-sm leading-snug ${
+											note.done
+												? "text-ink-muted line-through"
+												: "text-paper"
+										}`}
+									>
+										{note.title}
+									</p>
+									<button
+										type="button"
+										className="shrink-0 text-ink-muted hover:text-danger"
+										onClick={() => {
+											if (confirm(`¿Eliminar «${note.title}»?`)) {
+												removeMutation.mutate(note.id);
+											}
+										}}
+										aria-label="Eliminar nota"
+									>
+										<TrashIcon />
+									</button>
+								</li>
+							))}
+						</ul>
+					)}
+				</div>
+			</div>
 		</section>
+	);
+}
+
+function FoldIcon({ open }: { open: boolean }) {
+	return (
+		<svg
+			viewBox="0 0 24 24"
+			aria-hidden="true"
+			className={`h-4 w-4 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+				open ? "rotate-180" : ""
+			}`}
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="1.8"
+			strokeLinecap="square"
+		>
+			<path d="M6 9l6 6 6-6" />
+		</svg>
 	);
 }
 

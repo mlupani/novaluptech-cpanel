@@ -20,7 +20,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ClientWorkspace, Task, TaskStatus } from "@/types/client";
 import { createTask, deleteTask, queryKeys, reorderTasks } from "@/lib/api/clients";
 import { taskColumns } from "@/lib/labels";
@@ -71,15 +71,18 @@ function findContainer(id: string, columns: Columns): TaskStatus | undefined {
 
 export function TaskBoard({ client }: TaskBoardProps) {
 	const queryClient = useQueryClient();
+	const incomingTasks = client.tasks ?? [];
 	const [columns, setColumns] = useState<Columns>(() =>
-		groupTasks(client.tasks ?? []),
+		groupTasks(incomingTasks),
 	);
+	const [syncedTasks, setSyncedTasks] = useState(incomingTasks);
 	const [draft, setDraft] = useState("");
 	const [activeTask, setActiveTask] = useState<Task | null>(null);
 
-	useEffect(() => {
-		setColumns(groupTasks(client.tasks ?? []));
-	}, [client.tasks]);
+	if (incomingTasks !== syncedTasks) {
+		setSyncedTasks(incomingTasks);
+		setColumns(groupTasks(incomingTasks));
+	}
 
 	const sensors = useSensors(
 		useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),

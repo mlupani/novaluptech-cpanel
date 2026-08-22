@@ -26,7 +26,12 @@ export function WorkspaceSwitcher({
 
 	return (
 		<>
-			<MobileSwitcher clients={clients} currentId={currentId} current={current} />
+			<MobileSwitcher
+				key={currentId}
+				clients={clients}
+				currentId={currentId}
+				current={current}
+			/>
 			<aside
 				className={`${sidebarOpen ? "w-64" : "w-14"} hidden shrink-0 border-r border-white/10 bg-ink-soft/40 lg:block`}
 			>
@@ -74,11 +79,6 @@ function MobileSwitcher({
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const currentLabel = current?.company ?? current?.name ?? "Workspace";
-
-	useEffect(() => {
-		setOpen(false);
-		setQuery("");
-	}, [currentId]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -189,6 +189,7 @@ function MobileSwitcher({
 										key={client.id}
 										client={client}
 										active={client.id === currentId}
+										onSelect={() => setOpen(false)}
 									/>
 								))
 							)}
@@ -236,15 +237,18 @@ function ClientLink({ client, active, compact }: ClientLinkProps) {
 function SheetClientLink({
 	client,
 	active,
+	onSelect,
 }: {
 	client: Client;
 	active: boolean;
+	onSelect: () => void;
 }) {
 	const title = client.company ?? client.name;
 
 	return (
 		<Link
 			href={`/clientes/${client.id}`}
+			onClick={onSelect}
 			className={`mb-1 flex min-h-14 items-center gap-3 px-3 py-3 ${
 				active
 					? "bg-copper/10 text-paper"

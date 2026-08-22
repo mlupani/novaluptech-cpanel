@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function NotFound() {
 	return (
 		<main className="mx-auto max-w-xl px-4 py-16 sm:px-6 sm:py-20">
@@ -7,9 +9,9 @@ export default function NotFound() {
 			<h2 className="font-display mt-2 text-3xl text-paper sm:text-4xl">
 				Ese workspace no existe.
 			</h2>
-			<a href="/clientes" className="mt-6 inline-block text-sm text-copper-soft">
+			<Link href="/clientes" className="mt-6 inline-block text-sm text-copper-soft">
 				Volver al listado
-			</a>
+			</Link>
 		</main>
 	);
 }

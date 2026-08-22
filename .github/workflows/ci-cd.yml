@@ -1,0 +1,121 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  DATABASE_URL: postgresql://novalup:novalup@localhost:5432/novalup
+
+jobs:
+  ci:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint
+        run: pnpm lint
+
+  deploy:
+    name: Deploy VPS
+    needs: ci
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://cpanel.novaluptech.com
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Actualizar app en el VPS
+        uses: appleboy/ssh-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          DEPLOY_SHA: ${{ github.sha }}
+          DEPLOY_PATH: /opt/novaluptech-cpanel
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 30m
+          envs: GH_TOKEN,GH_REPO,DEPLOY_SHA,DEPLOY_PATH
+          script: |
+            #!/usr/bin/env bash
+            set -euo pipefail
+
+            cd "$DEPLOY_PATH"
+
+            if [[ ! -f docker-compose.prod.yml ]]; then
+              echo "No se encontró docker-compose.prod.yml en $DEPLOY_PATH"
+              exit 1
+            fi
+
+            if [[ ! -f .env ]]; then
+              echo "Falta el archivo .env en $DEPLOY_PATH (no está en git; hay que crearlo en el VPS)"
+              exit 1
+            fi
+
+            command -v git >/dev/null || { echo "git no está instalado"; exit 1; }
+            command -v docker >/dev/null || { echo "docker no está instalado"; exit 1; }
+            docker compose version >/dev/null || { echo "docker compose no está disponible"; exit 1; }
+
+            echo "Actualizando código a $DEPLOY_SHA..."
+            git fetch --depth=50 "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" "$DEPLOY_SHA"
+            git reset --hard FETCH_HEAD
+
+            echo "Reconstruyendo e iniciando contenedores..."
+            docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
+
+            echo "Limpiando imágenes huérfanas..."
+            docker image prune -f
+
+            echo "Esperando a que la app responda en 127.0.0.1:3010..."
+            ready=0
+            for i in $(seq 1 40); do
+              if curl -sf -o /dev/null http://127.0.0.1:3010; then
+                ready=1
+                echo "App respondiendo (intento $i)"
+                break
+              fi
+              echo "  intento $i/40..."
+              sleep 3
+            done
+
+            if [[ "$ready" -ne 1 ]]; then
+              echo "Health check falló. Últimos logs de app:"
+              docker compose -f docker-compose.prod.yml logs --tail 120 app
+              exit 1
+            fi
+
+            docker compose -f docker-compose.prod.yml ps
+            echo "Deploy completado: $DEPLOY_SHA"

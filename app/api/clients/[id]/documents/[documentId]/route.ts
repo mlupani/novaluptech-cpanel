@@ -18,17 +18,21 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
 	return new Response(null, { status: 204 });
 }
 
-export async function GET(_request: Request, { params }: RouteContext) {
+export async function GET(request: Request, { params }: RouteContext) {
 	const { id, documentId } = await params;
 	const existing = await prisma.document.findFirst({
 		where: { id: documentId, clientId: id },
 	});
 	if (!existing) return jsonError("Documento no encontrado", 404);
 	const bytes = await readFile(resolveUpload(existing.path));
+	const { searchParams } = new URL(request.url);
+	const forceDownload = searchParams.get("download") === "1";
+	const disposition = forceDownload ? "attachment" : "inline";
 	return new Response(bytes, {
 		headers: {
 			"Content-Type": existing.mimeType,
-			"Content-Disposition": `attachment; filename="${existing.fileName}"`,
+			"Content-Disposition": `${disposition}; filename="${existing.fileName}"`,
+			"Cache-Control": "private, max-age=300",
 		},
 	});
 }

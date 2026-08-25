@@ -7,13 +7,28 @@ import Link from "next/link";
 import { formatMoney } from "@/lib/clientUtils";
 import { ExpirationCard, StatCard } from "@/components/dashboard/Cards";
 import { InboxNotes } from "@/components/dashboard/InboxNotes";
+import { PendingTasksOverview } from "@/components/dashboard/PendingTasksOverview";
+import type { TodoTaskGroup } from "@/lib/queries";
 
 interface DashboardViewProps {
 	clients: Client[];
 	notes: InboxNote[];
+	todoOverview: {
+		groups: TodoTaskGroup[];
+		totalTodo: number;
+		clientsWithTodo: number;
+		activeClientsWithTodo: number;
+		inactiveClientsWithTodo: number;
+		totalActiveTodo: number;
+		totalInactiveTodo: number;
+	};
 }
 
-export function DashboardView({ clients, notes }: DashboardViewProps) {
+export function DashboardView({
+	clients,
+	notes,
+	todoOverview,
+}: DashboardViewProps) {
 	const stats = useMemo(() => {
 		const active = clients.filter((client) => client.status === "activo");
 		const monthly = active.filter(
@@ -51,7 +66,7 @@ export function DashboardView({ clients, notes }: DashboardViewProps) {
 	);
 
 	return (
-		<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+		<main className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
 			<div className="mb-8 flex flex-col gap-5 sm:mb-10 sm:gap-6 lg:flex-row lg:items-end lg:justify-between">
 				<div className="max-w-2xl">
 					<p className="text-[11px] tracking-[0.28em] text-copper-soft uppercase">
@@ -73,61 +88,85 @@ export function DashboardView({ clients, notes }: DashboardViewProps) {
 				</Link>
 			</div>
 
-			<section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-				<StatCard
-					label="Activos"
-					value={stats.totalActive}
-					hint={`${stats.monthly} mensuales · ${stats.annual} anuales`}
-				/>
-				<StatCard
-					label="Honorarios / mes"
-					value={formatMoney(stats.mrr, "ARS")}
-					hint="Solo clientes activos"
-				/>
-				<StatCard
-					label="Vencen este mes"
-					value={stats.expiringThisMonth}
-				/>
-				<StatCard label="Cartera" value={clients.length} />
-			</section>
-
-			<section className="mt-12">
-				<InboxNotes initialNotes={notes} />
-			</section>
-
-			<section className="mt-10 sm:mt-12">
-				<div className="mb-4 flex items-end justify-between gap-3">
-					<h3 className="font-display text-xl text-paper sm:text-2xl">
-						Próximos Vencimientos
-					</h3>
-					<p className="text-xs tracking-widest text-ink-muted uppercase">
-						{upcoming.length} fichas
+			{/* Nuevo layout: blotter izquierda, KPIs derecha */}
+			<div className="grid gap-6 lg:gap-8 lg:grid-cols-[360px_minmax(0,1fr)] xl:grid-cols-[380px_minmax(0,1fr)] 2xl:grid-cols-[420px_minmax(0,1fr)] lg:items-start">
+				{/* Izquierda — Blotter */}
+				<aside className="order-2 lg:order-1 lg:sticky lg:top-6">
+					<div className="border border-white/10 bg-ink-soft/30 p-4 sm:p-5">
+						<InboxNotes initialNotes={notes} />
+					</div>
+					<p className="mt-3 hidden text-center text-[11px] tracking-wide text-ink-muted lg:block">
+						Notas rápidas · no pertenecen a un cliente
 					</p>
+				</aside>
+
+				{/* Derecha — KPIs */}
+				<div className="order-1 lg:order-2 min-w-0 space-y-10">
+					<section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+						<StatCard
+							label="Activos"
+							value={stats.totalActive}
+							hint={`${stats.monthly} mensuales · ${stats.annual} anuales`}
+						/>
+						<StatCard
+							label="Honorarios / mes"
+							value={formatMoney(stats.mrr, "ARS")}
+							hint="Solo clientes activos"
+						/>
+						<StatCard
+							label="Vencen este mes"
+							value={stats.expiringThisMonth}
+						/>
+						<StatCard label="Cartera" value={clients.length} />
+					</section>
+
+					<section>
+						<PendingTasksOverview
+							groups={todoOverview.groups}
+							totalTodo={todoOverview.totalTodo}
+							clientsWithTodo={todoOverview.clientsWithTodo}
+							activeClientsWithTodo={todoOverview.activeClientsWithTodo}
+							inactiveClientsWithTodo={todoOverview.inactiveClientsWithTodo}
+							totalActiveTodo={todoOverview.totalActiveTodo}
+							totalInactiveTodo={todoOverview.totalInactiveTodo}
+						/>
+					</section>
+
+					<section>
+						<div className="mb-4 flex items-end justify-between gap-3">
+							<h3 className="font-display text-xl text-paper sm:text-2xl">
+								Próximos Vencimientos
+							</h3>
+							<p className="text-xs tracking-widest text-ink-muted uppercase">
+								{upcoming.length} fichas
+							</p>
+						</div>
+						{upcoming.length === 0 ? (
+							<div className="border border-dashed border-white/15 px-4 py-8">
+								<p className="text-sm text-ink-muted">
+									{clients.length === 0
+										? "Todavía no hay clientes. Creá el primero para armar su workspace."
+										: "No hay vencimientos activos."}
+								</p>
+								{clients.length === 0 ? (
+									<Link
+										href="/clientes/nuevo"
+										className="btn-primary mt-4 inline-block"
+									>
+										Nuevo cliente
+									</Link>
+								) : null}
+							</div>
+						) : (
+							<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+								{upcoming.map((client) => (
+									<ExpirationCard key={client.id} client={client} />
+								))}
+							</div>
+						)}
+					</section>
 				</div>
-				{upcoming.length === 0 ? (
-					<div className="border border-dashed border-white/15 px-4 py-8">
-						<p className="text-sm text-ink-muted">
-							{clients.length === 0
-								? "Todavía no hay clientes. Creá el primero para armar su workspace."
-								: "No hay vencimientos activos."}
-						</p>
-						{clients.length === 0 ? (
-							<Link
-								href="/clientes/nuevo"
-								className="btn-primary mt-4 inline-block"
-							>
-								Nuevo cliente
-							</Link>
-						) : null}
-					</div>
-				) : (
-					<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-						{upcoming.map((client) => (
-							<ExpirationCard key={client.id} client={client} />
-						))}
-					</div>
-				)}
-			</section>
+			</div>
 		</main>
 	);
 }

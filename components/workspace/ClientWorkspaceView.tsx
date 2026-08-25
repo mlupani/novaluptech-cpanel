@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
 	Client,
 	ClientStatus,
@@ -734,6 +734,9 @@ function DocumentsSection({ client, onChanged }: NestedProps) {
 	const [category, setCategory] = useState<DocumentCategory>("documentation");
 	const [notes, setNotes] = useState("");
 	const [file, setFile] = useState<File | null>(null);
+	const [previewDoc, setPreviewDoc] = useState<
+		(typeof client.documents)[number] | null
+	>(null);
 
 	return (
 		<div className="max-w-3xl">
@@ -799,19 +802,28 @@ function DocumentsSection({ client, onChanged }: NestedProps) {
 								{documentLabel[doc.category]} · {doc.fileName}
 							</p>
 						</div>
-						<div className="flex gap-3 text-xs">
+						<div className="flex items-center gap-3 text-xs">
+							<button
+								type="button"
+								onClick={() => setPreviewDoc(doc)}
+								className="inline-flex items-center gap-1 text-paper hover:text-copper-soft"
+							>
+								<EyeIcon /> Ver
+							</button>
 							<a
-								href={`/api/clients/${client.id}/documents/${doc.id}`}
-								className="text-copper-soft"
+								href={`/api/clients/${client.id}/documents/${doc.id}?download=1`}
+								className="text-copper-soft hover:text-paper"
 							>
 								Bajar
 							</a>
 							<button
 								type="button"
-								className="text-danger"
+								className="text-danger hover:underline"
 								onClick={async () => {
-									await deleteDocument(client.id, doc.id);
-									await onChanged();
+									if (confirm(`¿Borrar «${doc.title}»?`)) {
+										await deleteDocument(client.id, doc.id);
+										await onChanged();
+									}
 								}}
 							>
 								Borrar
@@ -820,6 +832,16 @@ function DocumentsSection({ client, onChanged }: NestedProps) {
 					</li>
 				))}
 			</ul>
+			{previewDoc ? (
+				<FilePreviewModal
+					title={previewDoc.title}
+					fileName={previewDoc.fileName}
+					mimeType={previewDoc.mimeType}
+					url={`/api/clients/${client.id}/documents/${previewDoc.id}`}
+					downloadUrl={`/api/clients/${client.id}/documents/${previewDoc.id}?download=1`}
+					onClose={() => setPreviewDoc(null)}
+				/>
+			) : null}
 		</div>
 	);
 }
@@ -831,6 +853,13 @@ function ProposalsSection({ client, onChanged }: NestedProps) {
 	const [sentAt, setSentAt] = useState("");
 	const [notes, setNotes] = useState("");
 	const [file, setFile] = useState<File | null>(null);
+	const [preview, setPreview] = useState<{
+		title: string;
+		fileName: string;
+		mimeType: string;
+		url: string;
+		downloadUrl: string;
+	} | null>(null);
 
 	return (
 		<div className="max-w-3xl">
@@ -916,21 +945,40 @@ function ProposalsSection({ client, onChanged }: NestedProps) {
 									{proposal.sentAt ? ` · ${formatDate(proposal.sentAt)}` : ""}
 								</p>
 							</div>
-							<div className="flex gap-3 text-xs">
+							<div className="flex items-center gap-3 text-xs">
 								{proposal.fileName ? (
-									<a
-										href={`/api/clients/${client.id}/proposals/${proposal.id}`}
-										className="text-copper-soft"
-									>
-										Archivo
-									</a>
+									<>
+										<button
+											type="button"
+											onClick={() =>
+												setPreview({
+													title: proposal.title,
+													fileName: proposal.fileName!,
+													mimeType: proposal.mimeType ?? "application/octet-stream",
+													url: `/api/clients/${client.id}/proposals/${proposal.id}`,
+													downloadUrl: `/api/clients/${client.id}/proposals/${proposal.id}?download=1`,
+												})
+											}
+											className="inline-flex items-center gap-1 text-paper hover:text-copper-soft"
+										>
+											<EyeIcon /> Ver
+										</button>
+										<a
+											href={`/api/clients/${client.id}/proposals/${proposal.id}?download=1`}
+											className="text-copper-soft hover:text-paper"
+										>
+											Bajar
+										</a>
+									</>
 								) : null}
 								<button
 									type="button"
-									className="text-danger"
+									className="text-danger hover:underline"
 									onClick={async () => {
-										await deleteProposal(client.id, proposal.id);
-										await onChanged();
+										if (confirm(`¿Borrar «${proposal.title}»?`)) {
+											await deleteProposal(client.id, proposal.id);
+											await onChanged();
+										}
 									}}
 								>
 									Borrar
@@ -940,6 +988,16 @@ function ProposalsSection({ client, onChanged }: NestedProps) {
 					</li>
 				))}
 			</ul>
+			{preview ? (
+				<FilePreviewModal
+					title={preview.title}
+					fileName={preview.fileName}
+					mimeType={preview.mimeType}
+					url={preview.url}
+					downloadUrl={preview.downloadUrl}
+					onClose={() => setPreview(null)}
+				/>
+			) : null}
 		</div>
 	);
 }
@@ -955,6 +1013,116 @@ function Field({ label, children }: FieldProps) {
 			{label}
 			<div className="mt-1">{children}</div>
 		</label>
+	);
+}
+
+function FilePreviewModal({
+	title,
+	fileName,
+	mimeType,
+	url,
+	downloadUrl,
+	onClose,
+}: {
+	title: string;
+	fileName: string;
+	mimeType: string;
+	url: string;
+	downloadUrl: string;
+	onClose: () => void;
+}) {
+	const isImage = mimeType.startsWith("image/");
+	const isPdf = mimeType === "application/pdf";
+
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") onClose();
+		};
+		document.addEventListener("keydown", onKey);
+		const prev = document.body.style.overflow;
+		document.body.style.overflow = "hidden";
+		return () => {
+			document.removeEventListener("keydown", onKey);
+			document.body.style.overflow = prev;
+		};
+	}, [onClose]);
+
+	return (
+		<div
+			className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+			onClick={onClose}
+			role="dialog"
+			aria-modal="true"
+			aria-label={`Vista previa de ${fileName}`}
+		>
+			<div
+				className="flex max-h-[90vh] w-full max-w-5xl flex-col border border-white/10 bg-ink-soft shadow-xl"
+				onClick={(e) => e.stopPropagation()}
+			>
+				<div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+					<div className="min-w-0">
+						<p className="truncate text-sm font-medium text-paper">{title}</p>
+						<p className="truncate text-xs text-ink-muted">{fileName} · {mimeType}</p>
+					</div>
+					<div className="flex shrink-0 items-center gap-2">
+						<a
+							href={url}
+							target="_blank"
+							rel="noreferrer"
+							className="hidden border border-white/15 px-3 py-1.5 text-xs text-paper hover:border-copper/50 sm:inline-flex"
+						>
+							Abrir en pestaña
+						</a>
+						<a
+							href={downloadUrl}
+							className="border border-copper bg-copper px-3 py-1.5 text-xs font-medium text-ink hover:bg-copper-soft"
+						>
+							Bajar
+						</a>
+						<button
+							type="button"
+							onClick={onClose}
+							className="flex size-8 items-center justify-center border border-white/15 text-paper/70 hover:text-paper"
+							aria-label="Cerrar"
+						>
+							✕
+						</button>
+					</div>
+				</div>
+				<div className="min-h-0 flex-1 overflow-auto bg-ink p-2 sm:p-4">
+					{isImage ? (
+						// eslint-disable-next-line @next/next/no-img-element
+						<img src={url} alt={fileName} className="mx-auto max-h-[75vh] max-w-full object-contain" />
+					) : isPdf ? (
+						<iframe src={url} title={fileName} className="h-[75vh] w-full border-0 bg-white" />
+					) : (
+						<div className="flex h-[50vh] flex-col items-center justify-center gap-4 py-10 text-center">
+							<p className="text-sm text-paper/70">
+								Vista previa no disponible para este tipo de archivo.
+							</p>
+							<p className="text-xs text-ink-muted">{mimeType}</p>
+							<div className="flex gap-2">
+								<a href={url} target="_blank" rel="noreferrer" className="btn-primary">
+									Abrir archivo
+								</a>
+								<a href={downloadUrl} className="border border-white/15 px-4 py-2 text-xs text-paper">
+									Bajar
+								</a>
+							</div>
+						</div>
+					)}
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function EyeIcon() {
+	return (
+		<svg viewBox="0 0 24 24" aria-hidden="true" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+			<path d="M1 12s4-6 11-6 11 6 11 6-4 6-11 6S1 12 1 12z" />
+			<circle cx="12" cy="12" r="3" />
+		</svg>
 	);
 }
 

@@ -78,17 +78,21 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
 	return new Response(null, { status: 204 });
 }
 
-export async function GET(_request: Request, { params }: RouteContext) {
+export async function GET(request: Request, { params }: RouteContext) {
 	const { id, proposalId } = await params;
 	const existing = await prisma.proposal.findFirst({
 		where: { id: proposalId, clientId: id },
 	});
 	if (!existing?.path) return jsonError("Archivo no encontrado", 404);
 	const bytes = await readFile(resolveUpload(existing.path));
+	const { searchParams } = new URL(request.url);
+	const forceDownload = searchParams.get("download") === "1";
+	const disposition = forceDownload ? "attachment" : "inline";
 	return new Response(bytes, {
 		headers: {
 			"Content-Type": existing.mimeType ?? "application/octet-stream",
-			"Content-Disposition": `attachment; filename="${existing.fileName ?? "propuesta"}"`,
+			"Content-Disposition": `${disposition}; filename="${existing.fileName ?? "propuesta"}"`,
+			"Cache-Control": "private, max-age=300",
 		},
 	});
 }

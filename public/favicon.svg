@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="Novalup">
+  <!-- Fondo ink -->
+  <rect width="32" height="32" rx="7" fill="#12110e"/>
+  <!-- Borde sutil tipo ledger -->
+  <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="none" stroke="#2e2b25" stroke-opacity="1"/>
+  <!-- Letra N — Fraunces display -->
+  <text x="16" y="15.2" text-anchor="middle" dominant-baseline="central" font-family="Fraunces, 'Times New Roman', Times, serif" font-size="17" font-weight="800" letter-spacing="-0.04em" fill="#f3eee4">N</text>
+  <!-- Barra cobre — acento Novalup -->
+  <rect x="11" y="22.2" width="10" height="2.2" rx="1.1" fill="#c45c26"/>
+</svg>

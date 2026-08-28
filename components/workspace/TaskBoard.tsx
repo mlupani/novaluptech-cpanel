@@ -5,10 +5,13 @@ import {
 	DragOverlay,
 	MouseSensor,
 	TouchSensor,
-	closestCorners,
+	closestCenter,
+	pointerWithin,
+	rectIntersection,
 	useDroppable,
 	useSensor,
 	useSensors,
+	type CollisionDetection,
 	type DragEndEvent,
 	type DragOverEvent,
 	type DragStartEvent,
@@ -68,6 +71,14 @@ function findContainer(id: string, columns: Columns): TaskStatus | undefined {
 		columns[column.id].some((task) => task.id === id),
 	)?.id;
 }
+
+const collisionDetection: CollisionDetection = (args) => {
+	const pointerCollisions = pointerWithin(args);
+	if (pointerCollisions.length > 0) return pointerCollisions;
+	const rectCollisions = rectIntersection(args);
+	if (rectCollisions.length > 0) return rectCollisions;
+	return closestCenter(args);
+};
 
 export function TaskBoard({ client }: TaskBoardProps) {
 	const queryClient = useQueryClient();
@@ -231,7 +242,7 @@ export function TaskBoard({ client }: TaskBoardProps) {
 
 			<DndContext
 				sensors={sensors}
-				collisionDetection={closestCorners}
+				collisionDetection={collisionDetection}
 				onDragStart={handleDragStart}
 				onDragOver={handleDragOver}
 				onDragEnd={handleDragEnd}
@@ -263,7 +274,7 @@ interface BoardColumnProps {
 }
 
 function BoardColumn({ id, label, tasks, onDelete }: BoardColumnProps) {
-	const { setNodeRef, isOver } = useDroppable({ id });
+	const { setNodeRef, isOver } = useDroppable({ id, data: { columnId: id } });
 
 	return (
 		<section
@@ -282,7 +293,7 @@ function BoardColumn({ id, label, tasks, onDelete }: BoardColumnProps) {
 				items={tasks.map((task) => task.id)}
 				strategy={verticalListSortingStrategy}
 			>
-				<ul className="flex flex-1 flex-col gap-2 p-2">
+				<ul className="flex min-h-[6rem] flex-1 flex-col gap-2 p-2 lg:min-h-[12rem]">
 					{tasks.map((task) => (
 						<SortableTask key={task.id} task={task} onDelete={onDelete} />
 					))}

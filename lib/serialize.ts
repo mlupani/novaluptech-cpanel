@@ -4,6 +4,7 @@ import type {
 	ClientStatus,
 	ClientWorkspace,
 	Currency,
+	Payment,
 	Proposal,
 	Resource,
 	SocialLink,
@@ -100,6 +101,15 @@ interface TaskRecord {
 	updatedAt: Date;
 }
 
+interface PaymentRecord {
+	id: string;
+	clientId: string;
+	amount: DecimalLike | number;
+	paidAt: Date;
+	notes: string | null;
+	createdAt: Date;
+}
+
 export { toDateOnly } from "@/lib/clientUtils";
 
 function toNumber(value: DecimalLike | number | null): number | null {
@@ -110,10 +120,10 @@ function toNumber(value: DecimalLike | number | null): number | null {
 export function serializeClient(record: ClientRecord): Client {
 	const subscriptionDate = toDateOnly(record.subscriptionDate);
 	const subscriptionType = record.subscriptionType as SubscriptionType;
-	const expirationDate = calculateExpirationDate(
-		subscriptionDate,
-		subscriptionType,
-	);
+	const baseline = calculateExpirationDate(subscriptionDate, subscriptionType);
+	const storedExpiration = toDateOnly(record.expirationDate);
+	const expirationDate =
+		storedExpiration > baseline ? storedExpiration : baseline;
 	const daysRemaining = calculateDaysRemaining(expirationDate);
 
 	return {
@@ -209,6 +219,17 @@ export function serializeTask(record: TaskRecord): Task {
 	};
 }
 
+export function serializePayment(record: PaymentRecord): Payment {
+	return {
+		id: record.id,
+		clientId: record.clientId,
+		amount: toNumber(record.amount) ?? 0,
+		paidAt: toDateOnly(record.paidAt),
+		notes: record.notes,
+		createdAt: record.createdAt.toISOString(),
+	};
+}
+
 interface InboxNoteRecord {
 	id: string;
 	title: string;
@@ -234,6 +255,7 @@ export function serializeWorkspace(
 		documents: DocumentRecord[];
 		proposals: ProposalRecord[];
 		tasks: TaskRecord[];
+		payments: PaymentRecord[];
 	},
 ): ClientWorkspace {
 	return {
@@ -243,6 +265,9 @@ export function serializeWorkspace(
 		documents: record.documents.map(serializeDocument),
 		proposals: record.proposals.map(serializeProposal),
 		tasks: record.tasks.map(serializeTask),
+		payments: [...record.payments]
+			.sort((a, b) => (a.paidAt < b.paidAt ? 1 : -1))
+			.map(serializePayment),
 	};
 }
 

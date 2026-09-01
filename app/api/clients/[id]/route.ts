@@ -37,10 +37,18 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 	const subscriptionDate = data.subscriptionDate
 		? data.subscriptionDate
 		: toDateOnly(existing.subscriptionDate);
-	const expirationDate = calculateExpirationDate(
+	const baseline = calculateExpirationDate(
 		subscriptionDate,
 		subscriptionType,
 	);
+	const storedExpiration = toDateOnly(existing.expirationDate);
+	const rebase =
+		data.subscriptionDate != null || data.subscriptionType != null;
+	const expirationDate = rebase
+		? baseline
+		: storedExpiration > baseline
+			? storedExpiration
+			: baseline;
 
 	const record = await prisma.client.update({
 		where: { id },

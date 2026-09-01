@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type {
 	Client,
 	ClientStatus,
@@ -16,6 +16,7 @@ import type {
 } from "@/types/client";
 import {
 	createDocument,
+	createPayment,
 	createProposal,
 	createResource,
 	createSocial,
@@ -29,12 +30,14 @@ import {
 	updateClient,
 } from "@/lib/api/clients";
 import {
+	addSubscriptionPeriod,
 	calculateDaysRemaining,
 	calculateExpirationDate,
 	calculateGeneratedRevenue,
 	formatDate,
 	formatMoney,
 	getUrgencyLevel,
+	todayDateOnly,
 	whatsappHref,
 } from "@/lib/clientUtils";
 import {
@@ -249,13 +252,14 @@ export function ClientWorkspaceView({
 								onSave={(payload) => saveMutation.mutate(payload)}
 							/>
 						) : null}
-						{workspaceSection === "cobro" ? (
-							<BillingSection
-								client={client}
-								saving={saveMutation.isPending}
-								onSave={(payload) => saveMutation.mutate(payload)}
-							/>
-						) : null}
+					{workspaceSection === "cobro" ? (
+						<BillingSection
+							client={client}
+							saving={saveMutation.isPending}
+							onSave={(payload) => saveMutation.mutate(payload)}
+							onChanged={invalidate}
+						/>
+					) : null}
 						{workspaceSection === "productos" ? (
 							<ResourcesSection client={client} onChanged={invalidate} />
 						) : null}
@@ -417,7 +421,12 @@ function ContactSection({ client, saving, onSave }: SaveSectionProps) {
 	);
 }
 
-function BillingSection({ client, saving, onSave }: SaveSectionProps) {
+function BillingSection({
+	client,
+	saving,
+	onSave,
+	onChanged,
+}: SaveSectionProps & { onChanged: () => Promise<void> }) {
 	const [form, setForm] = useState({
 		currency: client.currency,
 		monthlyAmount: String(client.monthlyAmount),
@@ -425,14 +434,17 @@ function BillingSection({ client, saving, onSave }: SaveSectionProps) {
 		subscriptionType: client.subscriptionType,
 		subscriptionDate: client.subscriptionDate,
 	});
+	const [showRegisterModal, setShowRegisterModal] = useState(false);
+	const [showPaymentsModal, setShowPaymentsModal] = useState(false);
 
-	const expirationDate = useMemo(
-		() =>
-			form.subscriptionDate
-				? calculateExpirationDate(form.subscriptionDate, form.subscriptionType)
-				: "",
-		[form.subscriptionDate, form.subscriptionType],
-	);
+	const datesDirty =
+		form.subscriptionDate !== client.subscriptionDate ||
+		form.subscriptionType !== client.subscriptionType;
+	const expirationDate = datesDirty
+		? form.subscriptionDate
+			? calculateExpirationDate(form.subscriptionDate, form.subscriptionType)
+			: ""
+		: client.expirationDate;
 	const daysRemaining = expirationDate
 		? calculateDaysRemaining(expirationDate)
 		: 0;
@@ -531,10 +543,248 @@ function BillingSection({ client, saving, onSave }: SaveSectionProps) {
 					)}
 				</p>
 			</div>
+			<div className="flex flex-wrap items-center gap-3 md:col-span-2">
+				<button
+					type="button"
+					className="btn-primary"
+					onClick={() => setShowRegisterModal(true)}
+				>
+					Registrar pago
+				</button>
+				<button
+					type="button"
+					className="border border-white/15 px-4 py-2 text-sm text-paper hover:border-copper/50"
+					onClick={() => setShowPaymentsModal(true)}
+				>
+					Ver pagos
+					{client.payments.length > 0 ? ` (${client.payments.length})` : ""}
+				</button>
+			</div>
 			<button type="submit" disabled={saving} className="btn-primary">
 				{saving ? "Guardando…" : "Guardar cobro"}
 			</button>
+			{showRegisterModal ? (
+				<RegisterPaymentModal
+					client={client}
+					onClose={() => setShowRegisterModal(false)}
+					onRegistered={onChanged}
+				/>
+			) : null}
+			{showPaymentsModal ? (
+				<PaymentsModal
+					client={client}
+					onClose={() => setShowPaymentsModal(false)}
+				/>
+			) : null}
 		</form>
+	);
+}
+
+function RegisterPaymentModal({
+	client,
+	onClose,
+	onRegistered,
+}: {
+	client: ClientWorkspace;
+	onClose: () => void;
+	onRegistered: () => Promise<void>;
+}) {
+	const suggested =
+		client.subscriptionType === "anual"
+			? client.monthlyAmount * 12
+			: client.monthlyAmount;
+	const [amount, setAmount] = useState(String(suggested || ""));
+	const [paidAt, setPaidAt] = useState(todayDateOnly());
+	const [notes, setNotes] = useState("");
+	const [saving, setSaving] = useState(false);
+	const [error, setError] = useState("");
+
+	const nextExpiration = addSubscriptionPeriod(
+		client.expirationDate,
+		client.subscriptionType,
+	);
+
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") onClose();
+		};
+		document.addEventListener("keydown", onKey);
+		const prev = document.body.style.overflow;
+		document.body.style.overflow = "hidden";
+		return () => {
+			document.removeEventListener("keydown", onKey);
+			document.body.style.overflow = prev;
+		};
+	}, [onClose]);
+
+	return (
+		<div
+			className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+			onClick={saving ? undefined : onClose}
+			role="dialog"
+			aria-modal="true"
+			aria-label="Registrar pago"
+		>
+			<form
+				className="w-full max-w-md border border-white/10 bg-ink-soft shadow-xl"
+				onClick={(e) => e.stopPropagation()}
+				onSubmit={async (event) => {
+					event.preventDefault();
+					setSaving(true);
+					setError("");
+					try {
+						await createPayment(client.id, {
+							amount: Number(amount) || 0,
+							paidAt,
+							notes,
+						});
+						await onRegistered();
+						onClose();
+					} catch (err) {
+						setError((err as Error).message);
+						setSaving(false);
+					}
+				}}
+			>
+				<div className="border-b border-white/10 px-4 py-3">
+					<p className="text-sm font-medium text-paper">Registrar pago</p>
+					<p className="mt-0.5 text-xs text-ink-muted">
+						Vence {formatDate(client.expirationDate)} →{" "}
+						{formatDate(nextExpiration)}
+					</p>
+				</div>
+				<div className="grid gap-3 px-4 py-4">
+					<Field label="Monto">
+						<input
+							type="number"
+							min="0"
+							value={amount}
+							onChange={(event) => setAmount(event.target.value)}
+							className="field"
+						/>
+					</Field>
+					<Field label="Fecha de pago">
+						<input
+							type="date"
+							value={paidAt}
+							onChange={(event) => setPaidAt(event.target.value)}
+							className="field"
+						/>
+					</Field>
+					<Field label="Notas">
+						<textarea
+							rows={2}
+							value={notes}
+							onChange={(event) => setNotes(event.target.value)}
+							className="field"
+						/>
+					</Field>
+					{error ? <p className="text-sm text-danger">{error}</p> : null}
+					<div className="flex justify-end gap-2">
+						<button
+							type="button"
+							onClick={onClose}
+							className="border border-white/15 px-4 py-2 text-xs text-paper hover:border-copper/50"
+						>
+							Cancelar
+						</button>
+						<button type="submit" disabled={saving} className="btn-primary">
+							{saving ? "Registrando…" : "Registrar"}
+						</button>
+					</div>
+				</div>
+			</form>
+		</div>
+	);
+}
+
+function PaymentsModal({
+	client,
+	onClose,
+}: {
+	client: ClientWorkspace;
+	onClose: () => void;
+}) {
+	const payments = [...client.payments].sort((a, b) =>
+		a.paidAt < b.paidAt ? 1 : -1,
+	);
+	const total = payments.reduce((sum, payment) => sum + payment.amount, 0);
+
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") onClose();
+		};
+		document.addEventListener("keydown", onKey);
+		const prev = document.body.style.overflow;
+		document.body.style.overflow = "hidden";
+		return () => {
+			document.removeEventListener("keydown", onKey);
+			document.body.style.overflow = prev;
+		};
+	}, [onClose]);
+
+	return (
+		<div
+			className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+			onClick={onClose}
+			role="dialog"
+			aria-modal="true"
+			aria-label="Pagos registrados"
+		>
+			<div
+				className="flex max-h-[85vh] w-full max-w-lg flex-col border border-white/10 bg-ink-soft shadow-xl"
+				onClick={(e) => e.stopPropagation()}
+			>
+				<div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+					<div>
+						<p className="text-sm font-medium text-paper">Pagos</p>
+						<p className="text-xs text-ink-muted">
+							{payments.length === 0
+								? "Sin pagos aún"
+								: `${payments.length} ${payments.length === 1 ? "pago" : "pagos"} · ${formatMoney(total, client.currency)}`}
+						</p>
+					</div>
+					<button
+						type="button"
+						onClick={onClose}
+						className="flex size-8 items-center justify-center border border-white/15 text-paper/70 hover:text-paper"
+						aria-label="Cerrar"
+					>
+						✕
+					</button>
+				</div>
+				<div className="min-h-0 flex-1 overflow-auto">
+					{payments.length === 0 ? (
+						<p className="px-4 py-10 text-center text-sm text-paper/60">
+							Todavía no hay pagos registrados.
+						</p>
+					) : (
+						<ul>
+							{payments.map((payment, index) => (
+								<li
+									key={payment.id}
+									className={`px-4 py-3 ${index > 0 ? "border-t border-white/10" : ""}`}
+								>
+									<div className="flex items-baseline justify-between gap-3">
+										<p className="text-sm text-paper">
+											{formatMoney(payment.amount, client.currency)}
+										</p>
+										<p className="text-xs text-ink-muted">
+											{formatDate(payment.paidAt)}
+										</p>
+									</div>
+									{payment.notes ? (
+										<p className="mt-1 text-xs text-paper/55">
+											{payment.notes}
+										</p>
+									) : null}
+								</li>
+							))}
+						</ul>
+					)}
+				</div>
+			</div>
+		</div>
 	);
 }
 

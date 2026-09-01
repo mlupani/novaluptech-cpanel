@@ -127,6 +127,12 @@ export const inboxNoteCreateSchema = z.object({
 	title: z.string().trim().min(1, "La nota es obligatoria"),
 });
 
+export const paymentCreateSchema = z.object({
+	amount: z.coerce.number().nonnegative("El monto debe ser positivo"),
+	paidAt: optionalText,
+	notes: optionalText,
+});
+
 export const inboxNoteUpdateSchema = z.object({
 	title: z.string().trim().min(1).optional(),
 	done: z.boolean().optional(),

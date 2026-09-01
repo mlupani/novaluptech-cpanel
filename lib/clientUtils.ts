@@ -63,7 +63,8 @@ export function calculateExpirationDate(
 ): string {
 	const start = parseYmd(subscriptionDate);
 	const today = parseYmd(todayDateOnly());
-	let due = start;
+	let due =
+		subscriptionType === "mensual" ? addMonths(start, 1) : addYears(start, 1);
 
 	if (subscriptionType === "mensual") {
 		while (formatYmd(due) < formatYmd(today)) {
@@ -76,6 +77,16 @@ export function calculateExpirationDate(
 	}
 
 	return formatYmd(due);
+}
+
+export function addSubscriptionPeriod(
+	date: string,
+	subscriptionType: SubscriptionType,
+): string {
+	const ymd = parseYmd(date);
+	const next =
+		subscriptionType === "mensual" ? addMonths(ymd, 1) : addYears(ymd, 1);
+	return formatYmd(next);
 }
 
 export function calculateDaysRemaining(expirationDate: string): number {

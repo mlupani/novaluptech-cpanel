@@ -4,6 +4,7 @@ import type {
 	ClientDocument,
 	ClientUpdateInput,
 	ClientWorkspace,
+	Payment,
 	Proposal,
 	Resource,
 	SocialLink,
@@ -156,4 +157,15 @@ export function deleteTask(clientId: string, taskId: string) {
 	return fetch(`/api/clients/${clientId}/tasks/${taskId}`, {
 		method: "DELETE",
 	}).then((res) => parseJson<void>(res));
+}
+
+export function createPayment(
+	clientId: string,
+	input: { amount: number; paidAt?: string | null; notes?: string | null },
+) {
+	return fetch(`/api/clients/${clientId}/payments`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(input),
+	}).then((res) => parseJson<Payment>(res));
 }

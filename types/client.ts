@@ -107,12 +107,22 @@ export interface Task {
 	updatedAt: string;
 }
 
+export interface Payment {
+	id: string;
+	clientId: string;
+	amount: number;
+	paidAt: string;
+	notes: string | null;
+	createdAt: string;
+}
+
 export interface ClientWorkspace extends Client {
 	resources: Resource[];
 	socialLinks: SocialLink[];
 	documents: ClientDocument[];
 	proposals: Proposal[];
 	tasks: Task[];
+	payments: Payment[];
 }
 
 export interface ClientCreateInput {

@@ -18,6 +18,7 @@ const workspaceInclude = {
 	documents: { orderBy: { createdAt: "desc" as const } },
 	proposals: { orderBy: { createdAt: "desc" as const } },
 	tasks: { orderBy: [{ position: "asc" as const }, { createdAt: "asc" as const }] },
+	payments: { orderBy: { paidAt: "desc" as const } },
 };
 
 export async function getClients() {

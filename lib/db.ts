@@ -7,7 +7,7 @@ if (!connectionString) {
 	throw new Error("DATABASE_URL no está definida");
 }
 
-const PRISMA_GENERATION = "inbox-notes-v2";
+const PRISMA_GENERATION = "payments-v1";
 
 const globalForPrisma = globalThis as unknown as {
 	prisma?: PrismaClient;
@@ -23,7 +23,7 @@ function createPrisma() {
 function isStalePrisma(client: PrismaClient | undefined) {
 	if (!client) return false;
 	if (globalForPrisma.prismaGeneration !== PRISMA_GENERATION) return true;
-	return typeof (client as { inboxNote?: { findMany?: unknown } }).inboxNote
+	return typeof (client as { payment?: { findMany?: unknown } }).payment
 		?.findMany !== "function";
 }
 

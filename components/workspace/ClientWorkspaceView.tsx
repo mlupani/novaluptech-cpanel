@@ -449,7 +449,10 @@ function BillingSection({
 		? calculateDaysRemaining(expirationDate)
 		: 0;
 
+	const payments = client.payments ?? [];
+
 	return (
+		<>
 		<form
 			className="grid max-w-3xl gap-4 md:grid-cols-2"
 			onSubmit={(event) => {
@@ -557,12 +560,13 @@ function BillingSection({
 					onClick={() => setShowPaymentsModal(true)}
 				>
 					Ver pagos
-					{client.payments.length > 0 ? ` (${client.payments.length})` : ""}
+					{payments.length > 0 ? ` (${payments.length})` : ""}
 				</button>
 			</div>
 			<button type="submit" disabled={saving} className="btn-primary">
 				{saving ? "Guardando…" : "Guardar cobro"}
 			</button>
+		</form>
 			{showRegisterModal ? (
 				<RegisterPaymentModal
 					client={client}
@@ -576,7 +580,7 @@ function BillingSection({
 					onClose={() => setShowPaymentsModal(false)}
 				/>
 			) : null}
-		</form>
+		</>
 	);
 }
 
@@ -705,7 +709,7 @@ function PaymentsModal({
 	client: ClientWorkspace;
 	onClose: () => void;
 }) {
-	const payments = [...client.payments].sort((a, b) =>
+	const payments = [...(client.payments ?? [])].sort((a, b) =>
 		a.paidAt < b.paidAt ? 1 : -1,
 	);
 	const total = payments.reduce((sum, payment) => sum + payment.amount, 0);
